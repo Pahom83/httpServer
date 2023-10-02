@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public class Server extends Thread {
+public class Server implements Runnable {
     final BufferedReader in;
     final BufferedOutputStream out;
     final List<String> validPaths = List.of("/index.html", "/spring.svg", "/spring.png", "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html", "/classic.html", "/events.html", "/events.js");
@@ -16,7 +16,7 @@ public class Server extends Thread {
     public Server(Socket socket) throws IOException {
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new BufferedOutputStream(socket.getOutputStream());
-        start();
+//        start();
     }
 
 
@@ -25,34 +25,32 @@ public class Server extends Thread {
         String requestLine;
         String[] parts;
         try {
-//            while (true) {
-                requestLine = in.readLine();
-                parts = requestLine.split(" ");
+            requestLine = in.readLine();
+            parts = requestLine.split(" ");
 
-                if (parts.length != 3) {
-                    // just close socket
-                    return;
-                }
-                final String path = parts[1];
-                if (!validPaths.contains(path)) {
-                    sendNotFound();
-                    return;
-                }
-                final var filePath = Path.of(".", "public", path);
-                final var mimeType = Files.probeContentType(filePath);
+            if (parts.length != 3) {
+                // just close socket
+                return;
+            }
+            final String path = parts[1];
+            if (!validPaths.contains(path)) {
+                sendNotFound();
+                return;
+            }
+            final var filePath = Path.of(".", "public", path);
+            final var mimeType = Files.probeContentType(filePath);
 
-                // special case for classic
-                if (path.equals("/classic.html")) {
-                    final var template = Files.readString(filePath);
-                    final var content = template.replace(
-                            "{time}",
-                            LocalDateTime.now().toString()
-                    ).getBytes();
-                    sendOk(content, mimeType);
-                    return;
-                }
-                sendOk(Files.readAllBytes(filePath), mimeType);
-//            }
+            // special case for classic
+            if (path.equals("/classic.html")) {
+                final var template = Files.readString(filePath);
+                final var content = template.replace(
+                        "{time}",
+                        LocalDateTime.now().toString()
+                ).getBytes();
+                sendOk(content, mimeType);
+                return;
+            }
+            sendOk(Files.readAllBytes(filePath), mimeType);
         } catch (Exception e) {
             e.printStackTrace();
         }
